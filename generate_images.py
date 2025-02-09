@@ -62,24 +62,27 @@ async def generate_languages(s: Stats) -> None:
     sorted_languages = sorted(
         (await s.languages).items(), reverse=True, key=lambda t: t[1].get("size")
     )
-    delay_between = 150
+    
     for i, (lang, data) in enumerate(sorted_languages):
-        color = data.get("color")
-        color = color if color is not None else "#000000"
+        # Get color from the data, default to gray if not specified
+        color = data.get("color", "#858585")
+        
+        # Generate progress bar
         progress += (
             f'<span style="background-color: {color};'
             f'width: {data.get("prop", 0):0.3f}%;" '
             f'class="progress-item"></span>'
         )
+        
+        # Generate language list without animation
         lang_list += f"""
-<li style="animation-delay: {i * delay_between}ms;">
+<li>
 <svg xmlns="http://www.w3.org/2000/svg" class="octicon" style="fill:{color};"
 viewBox="0 0 16 16" version="1.1" width="16" height="16"><path
 fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path></svg>
 <span class="lang">{lang}</span>
 <span class="percent">{data.get("prop", 0):0.2f}%</span>
 </li>
-
 """
 
     output = re.sub(r"{{ progress }}", progress, output)
@@ -101,25 +104,28 @@ async def main() -> None:
     """
     access_token = os.getenv("ACCESS_TOKEN")
     if not access_token:
-        # access_token = os.getenv("GITHUB_TOKEN")
         raise Exception("A personal access token is required to proceed!")
+    
     user = os.getenv("GITHUB_ACTOR")
     if user is None:
         raise RuntimeError("Environment variable GITHUB_ACTOR must be set.")
+    
     exclude_repos = os.getenv("EXCLUDED")
     excluded_repos = (
         {x.strip() for x in exclude_repos.split(",")} if exclude_repos else None
     )
+    
     exclude_langs = os.getenv("EXCLUDED_LANGS")
     excluded_langs = (
         {x.strip() for x in exclude_langs.split(",")} if exclude_langs else None
     )
-    # Convert a truthy value to a Boolean
+    
     raw_ignore_forked_repos = os.getenv("EXCLUDE_FORKED_REPOS")
     ignore_forked_repos = (
         not not raw_ignore_forked_repos
         and raw_ignore_forked_repos.strip().lower() != "false"
     )
+    
     async with aiohttp.ClientSession() as session:
         s = Stats(
             user,
